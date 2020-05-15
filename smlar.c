@@ -16,7 +16,9 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#if (PG_VERSION_NUM < 120000)
 #include "utils/tqual.h"
+#endif
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
@@ -26,6 +28,11 @@ PG_MODULE_MAGIC;
 #define SNAPSHOT NULL
 #else
 #define SNAPSHOT SnapshotNow
+#endif
+
+#if PG_VERSION_NUM >= 130000
+#define heap_open(r, l)			table_open((r), (l))
+#define heap_close(r, l)		table_close((r), (l))
 #endif
 
 static Oid
@@ -56,7 +63,11 @@ getDefaultOpclass(Oid amoid, Oid typid)
 		{
 			if ( OidIsValid(opclassOid) )
 				elog(ERROR, "Ambiguous opclass for type %u (access method %u)", typid, amoid); 
+#if (PG_VERSION_NUM >= 120000)
+			opclassOid = opclass->oid;
+#else
 			opclassOid = HeapTupleGetOid(tuple);
+#endif
 		}
 	}
 
